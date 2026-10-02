@@ -2,6 +2,8 @@ const express = require('express');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const eventRoutes = require('./routes/eventRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
 
 dotenv.config();
 
@@ -12,6 +14,8 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/bookings', bookingRoutes)
 
 app.get('/', (req, res) => {
   res.send('API is running...');

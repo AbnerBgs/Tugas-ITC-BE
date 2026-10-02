@@ -47,6 +47,7 @@ model Event {
   price       Int
   quota       Int
   date        DateTime
+  location    String
   categoryId  Int
   category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   bookings    Booking[]

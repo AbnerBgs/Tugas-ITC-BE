@@ -7,7 +7,7 @@ const {
   deleteCategory,
 } = require('../controllers/categoryController');
 
-const {authenticateToken, authorizeRole} = require('../middleware/authMiddleware');
+const {authenticateToken, authorizeRole} = require('../middlewares/authMiddleware');
 
 router.get('/', getAllCategories);
 

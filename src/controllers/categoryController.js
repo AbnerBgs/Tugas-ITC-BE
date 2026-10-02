@@ -5,7 +5,7 @@ const createCategory = async (req, res) => {
         const {name} = req.body;
 
         if (!name) {
-            return res.status(400).json({message: 'Nama kategori wajib di isi'});
+            return res.status(400).json({message: ''});
         }
 
         const category = await prisma.category.create({
@@ -13,7 +13,7 @@ const createCategory = async (req, res) => {
         });
 
         res.status(201).json({
-            message: 'Kategori berhasil dibuat',
+            message: 'The category name is mandatory',
             data: category,
         });
     } catch (error) {
@@ -25,7 +25,7 @@ const getAllCategories = async (req, res) => {
     try {
         const categories = await prisma.category.findMany();
         res.json({
-            message : 'Berhasil mengambil data kategori',
+            message : 'Successfully retrieved category data',
             data: categories,
         });
     } catch (error) {
@@ -44,7 +44,7 @@ const updateCategory = async (req, res) => {
     });
 
     res.json({
-      message: 'Kategori berhasil diperbarui',
+      message: 'Category updated successfully',
       data: category,
     });
   } catch (error) {
@@ -60,7 +60,7 @@ const deleteCategory = async (req, res) => {
       where: { id: Number(id) },
     });
 
-    res.json({ message: 'Kategori berhasil dihapus' });
+    res.json({ message: 'Category successfully deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
