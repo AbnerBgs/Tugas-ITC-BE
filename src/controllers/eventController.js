@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { successResponse, createdResponse, errorResponse } = require('../utils/response');
+const { getPagination, formatPaginatedData } = require('../utils/pagination');
 
 const createEvent = async (req, res) => {
   try {
@@ -34,16 +35,49 @@ const createEvent = async (req, res) => {
 
 const getAllEvents = async (req, res) => {
   try {
-    const events = await prisma.event.findMany({
-      include: {
-        category: true, 
-      },
-    });
-    
-    return successResponse(res, 'Successfully retrieved event data', events);
+    const { search, categoryId, minPrice, maxPrice } = req.query;
+    const { page, limit, skip } = getPagination(req.query);
+
+    const where = {};
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search } },
+        { location: { contains: search } },
+      ];
+    }
+
+    if (categoryId) {
+      where.categoryId = Number(categoryId);
+    }
+
+    if (minPrice || maxPrice) {
+      where.price = {};
+      if (minPrice) where.price.gte = Number(minPrice);
+      if (maxPrice) where.price.lte = Number(maxPrice);
+    }
+
+    const [events, totalEvents] = await prisma.$transaction([
+      prisma.event.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          category: {
+            select: { id: true, name: true },
+          },
+        },
+      }),
+      prisma.event.count({ where }),
+    ]);
+
+    const result = formatPaginatedData(events, totalEvents, page, limit);
+
+    return successResponse(res, 'Successfully retrieved event data', result);
   } catch (error) {
     console.error('[Get All Events Error]', error);
-    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
+    return errorResponse(res, 'An internal server error occurred.', 500);
   }
 };
 
