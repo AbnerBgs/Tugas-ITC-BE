@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { successResponse, createdResponse, errorResponse } = require('../utils/response');
 
 const createBooking = async (req, res) => {
   try {
@@ -6,7 +7,7 @@ const createBooking = async (req, res) => {
     const { eventId, quantity } = req.body;
 
     if (!eventId || !quantity || quantity <= 0) {
-      return res.status(400).json({ message: 'eventId dan quantity (minimal 1) wajib diisi' });
+      return errorResponse(res, 'eventId dan quantity (minimal 1) wajib diisi', 400);
     }
 
     const event = await prisma.event.findUnique({
@@ -14,11 +15,11 @@ const createBooking = async (req, res) => {
     });
 
     if (!event) {
-      return res.status(404).json({ message: 'Event tidak ditemukan' });
+      return errorResponse(res, 'Event tidak ditemukan', 404);
     }
 
     if (event.quota < quantity) {
-      return res.status(400).json({ message: `Sisa tiket tidak mencukupi (Tersisa: ${event.quota})` });
+      return errorResponse(res, `Sisa tiket tidak mencukupi (Tersisa: ${event.quota})`, 400);
     }
 
     const totalPrice = event.price * Number(quantity);
@@ -42,12 +43,11 @@ const createBooking = async (req, res) => {
       }),
     ]);
 
-    res.status(201).json({
-      message: 'Pemesanan tiket berhasil',
-      data: booking,
-    });
+    return createdResponse(res, 'Pemesanan tiket berhasil', booking);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Create Booking Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
 };
 
@@ -69,12 +69,11 @@ const getMyBookings = async (req, res) => {
       },
     });
 
-    res.json({
-      message: 'Berhasil mengambil riwayat pemesanan',
-      data: bookings,
-    });
+    return successResponse(res, 'Berhasil mengambil riwayat pemesanan', bookings);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Get My Bookings Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
 };
 
@@ -91,12 +90,11 @@ const getAllBookings = async (req, res) => {
       },
     });
 
-    res.json({
-      message: 'Berhasil mengambil seluruh transaksi',
-      data: bookings,
-    });
+    return successResponse(res, 'Berhasil mengambil seluruh transaksi', bookings);
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Get All Bookings Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
 };
 

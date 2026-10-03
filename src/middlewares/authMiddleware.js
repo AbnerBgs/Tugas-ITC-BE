@@ -1,16 +1,21 @@
 const jwt = require('jsonwebtoken');
+const { errorResponse } = require('../utils/response');
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  if (!authHeader) {
+    return errorResponse(res, 'Authorization header missing', 401);
+  }
 
+  const token = authHeader && authHeader.split(' ')[1];
   if (!token) {
-    return res.status(401).json({ message: 'Access token required' });
+    return errorResponse(res, 'Access token required', 401);
   }
 
   jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, user) => {
     if (err) {
-      return res.status(403).json({ message: 'Invalid or expired token' });
+      console.error('[Token Verification Error]', err);
+      return errorResponse(res, 'Invalid or expired token', 403);
     }
     req.user = user;
     next();
@@ -19,8 +24,8 @@ const authenticateToken = (req, res, next) => {
 
 const authorizeRole = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Access denied: Insufficient permissions' });
+    if (!req.user || !roles.includes(req.user.role)) {
+      return errorResponse(res, 'Access denied: Insufficient permissions', 403);
     }
     next();
   };

@@ -1,11 +1,20 @@
 const prisma = require('../config/prisma');
+const { successResponse, createdResponse, errorResponse } = require('../utils/response');
 
 const createEvent = async (req, res) => {
   try {
     const { title, description, date, location, price, quota, categoryId } = req.body;
 
     if (!title || !date || !location || price === undefined || quota === undefined || !categoryId) {
-      return res.status(400).json({ message: 'All fields are required to be filled in' });
+      return errorResponse(res, 'All fields are required to be filled in', 400);
+    }
+
+    const categoryExists = await prisma.category.findUnique({
+      where: { id: Number(categoryId) }
+    });
+
+    if (!categoryExists) {
+      return errorResponse(res, 'Category not found', 404);
     }
 
     const event = await prisma.event.create({
@@ -20,12 +29,10 @@ const createEvent = async (req, res) => {
       },
     });
 
-    res.status(201).json({
-      message: 'The event was created successfully',
-      data: event,
-    });
+    return createdResponse(res, 'The event was created successfully', event);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Create Event Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
 };
 
@@ -36,12 +43,11 @@ const getAllEvents = async (req, res) => {
         category: true, 
       },
     });
-    res.json({
-      message: 'Successfully retrieved event data',
-      data: events,
-    });
+    
+    return successResponse(res, 'Successfully retrieved event data', events);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Get All Events Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
 };
 
@@ -56,15 +62,13 @@ const getEventById = async (req, res) => {
     });
 
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return errorResponse(res, 'Event not found', 404);
     }
 
-    res.json({
-      message: 'Successfully retrieved event details',
-      data: event,
-    });
+    return successResponse(res, 'Successfully retrieved event details', event);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Get Event By ID Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
 };
 
@@ -73,6 +77,14 @@ const updateEvent = async (req, res) => {
     const { id } = req.params;
     const { title, description, date, location, price, quota, categoryId } = req.body;
 
+    const existingEvent = await prisma.event.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!existingEvent) {
+      return errorResponse(res, 'Event not found', 404);
+    }
+
     const event = await prisma.event.update({
       where: { id: Number(id) },
       data: {
@@ -80,33 +92,39 @@ const updateEvent = async (req, res) => {
         description,
         date: date ? new Date(date) : undefined,
         location,
-        price: price ? Number(price) : undefined,
-        quota: quota ? Number(quota) : undefined,
+        price: price !== undefined ? Number(price) : undefined,
+        quota: quota !== undefined ? Number(quota) : undefined,
         categoryId: categoryId ? Number(categoryId) : undefined,
       },
     });
 
-    res.json({
-      message: 'Event updated successfully',
-      data: event,
-    });
+    return successResponse(res, 'Event updated successfully', event);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Update Event Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
 };
-
 
 const deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const existingEvent = await prisma.event.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!existingEvent) {
+      return errorResponse(res, 'Event not found', 404);
+    }
+
     await prisma.event.delete({
       where: { id: Number(id) },
     });
 
-    res.json({ message: 'The event was successfully deleted' });
+    return successResponse(res, 'The event was successfully deleted', null);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Delete Event Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
 };
 

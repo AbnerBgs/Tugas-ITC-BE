@@ -1,16 +1,34 @@
 const prisma = require('../config/prisma');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { successResponse, createdResponse, errorResponse } = require('../utils/response');
 
 // Register
 const register = async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role } = req.body || {};
+
+  if (!name || !email || !password) {
+    return errorResponse(res, 'Name, email, and password are required', 400);
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return errorResponse(res, 'Invalid email format', 400);
+  }
+
+  if (password.length < 8) {
+    return errorResponse(res, 'Password must be at least 8 characters long', 400);
+  }
+
+  let userRole = (role || 'USER').toUpperCase();
+  if (!['USER', 'ADMIN'].includes(userRole)) {
+    return errorResponse(res, 'Invalid role. Role must be either USER or ADMIN', 400);
+  }
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
 
     if (existingUser) {
-      return res.status(400).json({ message: 'Email Already Taken' });
+      return errorResponse(res, 'Email already taken', 400);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -20,39 +38,42 @@ const register = async (req, res) => {
         name,
         email,
         password: hashedPassword,
-        role: role || 'USER',
+        role: userRole,
       },
     });
 
-    res.status(201).json({
-      message: 'User Registered Successfully',
-      data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+    return createdResponse(res, 'User registered successfully', {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
     });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Register Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
 };
 
 // Login
 const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
+
+  if (!email || !password) {
+    return errorResponse(res, 'Email and password are required', 400);
+  }
 
   try {
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid email or password' });
+      return errorResponse(res, 'Invalid email or password', 400);
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid email or password' });
+      return errorResponse(res, 'Invalid email or password', 400);
     }
 
     const token = jwt.sign(
@@ -61,12 +82,19 @@ const login = async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    res.json({
-      message: 'Login successful',
+    return successResponse(res, 'Login successful', {
       token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Login Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
 };
 
