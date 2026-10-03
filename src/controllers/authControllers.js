@@ -5,24 +5,8 @@ const { successResponse, createdResponse, errorResponse } = require('../utils/re
 
 // Register
 const register = async (req, res) => {
-  const { name, email, password, role } = req.body || {};
-
-  if (!name || !email || !password) {
-    return errorResponse(res, 'Name, email, and password are required', 400);
-  }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return errorResponse(res, 'Invalid email format', 400);
-  }
-
-  if (password.length < 8) {
-    return errorResponse(res, 'Password must be at least 8 characters long', 400);
-  }
-
-  let userRole = (role || 'USER').toUpperCase();
-  if (!['USER', 'ADMIN'].includes(userRole)) {
-    return errorResponse(res, 'Invalid role. Role must be either USER or ADMIN', 400);
-  }
+  const { name, email, password, role } = req.body;
+  const userRole = (role || 'USER').toUpperCase();
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -48,7 +32,6 @@ const register = async (req, res) => {
       email: user.email,
       role: user.role,
     });
-
   } catch (error) {
     console.error('[Register Error]', error);
     return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
@@ -57,11 +40,7 @@ const register = async (req, res) => {
 
 // Login
 const login = async (req, res) => {
-  const { email, password } = req.body || {};
-
-  if (!email || !password) {
-    return errorResponse(res, 'Email and password are required', 400);
-  }
+  const { email, password } = req.body;
 
   try {
     const user = await prisma.user.findUnique({ where: { email } });
@@ -91,7 +70,6 @@ const login = async (req, res) => {
         role: user.role,
       },
     });
-
   } catch (error) {
     console.error('[Login Error]', error);
     return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);

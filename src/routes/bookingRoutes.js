@@ -7,8 +7,9 @@ const {
 } = require('../controllers/bookingController');
 
 const { authenticateToken, authorizeRole } = require('../middlewares/authMiddleware');
+const { validateBooking } = require('../middlewares/validationMiddleware');
 
-router.post('/', authenticateToken, createBooking);
+router.post('/', authenticateToken, validateBooking, createBooking);
 router.get('/my-bookings', authenticateToken, getMyBookings);
 
 router.get('/admin', authenticateToken, authorizeRole('ADMIN'), getAllBookings);

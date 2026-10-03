@@ -6,38 +6,37 @@ const createBooking = async (req, res) => {
     const userId = req.user.id; 
     const { eventId, quantity } = req.body;
 
-    if (!eventId || !quantity || quantity <= 0) {
-      return errorResponse(res, 'eventId dan quantity (minimal 1) wajib diisi', 400);
-    }
+    const parsedEventId = Number(eventId);
+    const parsedQuantity = Number(quantity);
 
     const event = await prisma.event.findUnique({
-      where: { id: Number(eventId) },
+      where: { id: parsedEventId },
     });
 
     if (!event) {
       return errorResponse(res, 'Event tidak ditemukan', 404);
     }
 
-    if (event.quota < quantity) {
+    if (event.quota < parsedQuantity) {
       return errorResponse(res, `Sisa tiket tidak mencukupi (Tersisa: ${event.quota})`, 400);
     }
 
-    const totalPrice = event.price * Number(quantity);
+    const totalPrice = event.price * parsedQuantity;
 
     const [booking] = await prisma.$transaction([
       prisma.booking.create({
         data: {
           userId: Number(userId),
-          eventId: Number(eventId),
-          quantity: Number(quantity),
+          eventId: parsedEventId,
+          quantity: parsedQuantity,
           totalPrice: Number(totalPrice),
         },
       }),
       prisma.event.update({
-        where: { id: Number(eventId) },
+        where: { id: parsedEventId },
         data: {
           quota: {
-            decrement: Number(quantity), 
+            decrement: parsedQuantity, 
           },
         },
       }),

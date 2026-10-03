@@ -2,43 +2,38 @@ const prisma = require('../config/prisma');
 const { successResponse, createdResponse, errorResponse } = require('../utils/response');
 
 const createCategory = async (req, res) => {
-    try {
-        const { name } = req.body;
+  try {
+    const { name } = req.body;
 
-        if (!name) {
-            return errorResponse(res, 'Category name is required', 400);
-        }
+    const category = await prisma.category.create({
+      data: { name },
+    });
 
-        const category = await prisma.category.create({
-            data: { name },
-        });
-
-        return createdResponse(res, 'Category created successfully', category);
-    } catch (error) {
-        console.error('[Create Category Error]', error);
-        return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
+    return createdResponse(res, 'Category created successfully', category);
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return errorResponse(res, 'Category name already exists', 400);
     }
+    console.error('[Create Category Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
+  }
 };
 
 const getAllCategories = async (req, res) => {
-    try {
-        const categories = await prisma.category.findMany();
-        
-        return successResponse(res, 'Successfully retrieved category data', categories);
-    } catch (error) {
-        console.error('[Get All Categories Error]', error);
-        return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
-    }
+  try {
+    const categories = await prisma.category.findMany();
+    
+    return successResponse(res, 'Successfully retrieved category data', categories);
+  } catch (error) {
+    console.error('[Get All Categories Error]', error);
+    return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
+  }
 };
 
 const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
-
-    if (!name) {
-        return errorResponse(res, 'Category name is required', 400);
-    }
 
     const existingCategory = await prisma.category.findUnique({
       where: { id: Number(id) }
@@ -55,6 +50,9 @@ const updateCategory = async (req, res) => {
 
     return successResponse(res, 'Category updated successfully', category);
   } catch (error) {
+    if (error.code === 'P2002') {
+      return errorResponse(res, 'Category name already exists', 400);
+    }
     console.error('[Update Category Error]', error);
     return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
@@ -78,6 +76,9 @@ const deleteCategory = async (req, res) => {
 
     return successResponse(res, 'Category successfully deleted', null);
   } catch (error) {
+    if (error.code === 'P2003') {
+      return errorResponse(res, 'Cannot delete category because it is linked to active events', 400);
+    }
     console.error('[Delete Category Error]', error);
     return errorResponse(res, 'An internal server error occurred. Please try again later.', 500);
   }
